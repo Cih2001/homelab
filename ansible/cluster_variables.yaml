@@ -1,0 +1,58 @@
+cluster_name: homelab-k8s
+kube_proxy_mode: iptables
+helm_enabled: true
+metallb_enabled: true
+metallb_speaker_enabled: "{{ metallb_enabled }}"
+metallb_namespace: "metallb-system"
+metallb_version: v0.13.9
+metallb_protocol: "layer2"
+metallb_port: "7472"
+metallb_memberlist_port: "7946"
+metallb_config:
+  speaker:
+    nodeselector:
+      kubernetes.io/os: "linux"
+    tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
+  controller:
+    nodeselector:
+      kubernetes.io/os: "linux"
+    tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
+  address_pools:
+    primary:
+      ip_range:
+        - 10.100.0.128/25
+      auto_assign: true
+  layer2:
+    - primary
+    # layer3:
+    #   defaults:
+    #     peer_port: 179
+    #     hold_time: 120s
+    #   communities:
+    #     vpn-only: "1234:1"
+    #     no-advertise: "65535:65282"
+    #   metallb_peers:
+    #     peer1:
+    #       peer_address: 10.6.0.1
+    #       peer_asn: 64512
+    #       my_asn: 4200000000
+    #       communities:
+    #         - vpn-only
+    #       address_pool:
+    #         - pool1
+    #     peer2:
+    #       peer_address: 10.10.0.1
+    #       peer_asn: 64513
+    #       my_asn: 4200000000
+    #       communities:
+    #         - no-advertise
+    #       address_pool:
+    #         - pool2

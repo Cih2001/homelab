@@ -1,0 +1,9 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: Set hostname from inventory
+      hostname:
+        name: "{{ inventory_hostname }}"
+
+# Import kubespray playbook to deploy k8s cluster
+- import_playbook: ./kubespray/cluster.yml

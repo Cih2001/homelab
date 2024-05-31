@@ -1,0 +1,11 @@
+.env
+id_rsa.pub
+id_rsa
+kubespray-venv
+kubespray
+ansible/kubespray
+inventory.ini
+.terraform
+terraform.tfstate
+terraform.tfstate.backup
+.terraform.lock.hcl
