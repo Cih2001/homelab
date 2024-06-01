@@ -35,8 +35,8 @@ resource "proxmox_virtual_environment_file" "cloud_config" {
         sudo: ALL=(ALL) NOPASSWD:ALL
     runcmd:
         - apt update
-        - apt install -y qemu-guest-agent net-tools
-        - timedatectl set-timezone America/Toronto
+        - apt install -y qemu-guest-agent net-tools nfs-common
+        - timedatectl set-timezone Europe/Berlin
         - systemctl enable qemu-guest-agent
         - systemctl start qemu-guest-agent
         - echo "done" > /tmp/cloud-config.done
