@@ -28,6 +28,13 @@ spec:
           ports:
             - containerPort: 80
               name: http-web-svc
+          volumeMounts:
+            - mountPath: "/usr/share/nginx/html"
+              name: nginx-volume
+      volumes:
+        - name: nginx-volume
+          persistentVolumeClaim:
+            claimName: test-claim
 ---
 apiVersion: v1
 kind: Service
@@ -41,3 +48,17 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: http-web-svc
+  type: LoadBalancer
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  namespace: draft
+  name: test-claim
+spec:
+  storageClassName: nfs-client
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Mi
