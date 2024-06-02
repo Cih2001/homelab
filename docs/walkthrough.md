@@ -14,7 +14,7 @@ This is a step by step guide on how to create a home lab.
 1. k8s kubernetes cluster in isolated from local lan
 1. Argocd integration on github.
 1. MinIO object storage
-1. Vault secret manager.
+1. Sealed Secrets
 1. Prometeus and Grafana
 
 Bonus:
@@ -33,6 +33,18 @@ Bonus:
 ### EdgeServices
 
 ### Kubernetes Cluster
+
+#### ArgoCD
+
+can be done with kubespray
+
+#### Sealed Secrets
+
+Add bitnami charts
+
+```sh
+argocd repo add https://charts.bitnami.com/bitnami --name bitnami
+```
 
 #### Terraform
 

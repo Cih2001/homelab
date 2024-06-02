@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: draftapp-dev
+spec:
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: draftapp-dev
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: postgres
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: draftapp-dev
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:latest
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: mydatabase
+            - name: POSTGRES_USER
+              value: myuser
+            - name: POSTGRES_PASSWORD
+              value: mypassword
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+              subPath: postgres
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-pv-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: draftapp-dev
+  name: postgres-pv-claim
+spec:
+  storageClassName: nfs-client
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
