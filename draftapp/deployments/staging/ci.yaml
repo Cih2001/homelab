@@ -4,10 +4,23 @@ metadata:
   namespace: draftapp-dev
   generateName: hello-world-
 spec:
-  entrypoint: whalesay
+  entrypoint: main
   templates:
+    - name: main
+      steps:
+        - - name: whalesay-step
+            template: whalesay
+        - - name: sleep-step
+            template: sleep
+
     - name: whalesay
       container:
         image: docker/whalesay
         command: [cowsay]
         args: ["hello world"]
+
+    - name: sleep
+      container:
+        image: alpine:3.10
+        command: [sh, -c]
+        args: ["echo 'Sleeping for 1 minute...'; sleep 60"]

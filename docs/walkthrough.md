@@ -72,6 +72,8 @@ argocd repo add https://charts.bitnami.com/bitnami --name bitnami
 
 ### Argo Workflows
 
+#### Accessing UI
+
 Argo workflows are installed automatically as a argo cd app with helm charts. As argo cli uses kubectl context, it has first class access to argo workflows. For the UI however we need to use a token. We can use `argo-workflows-server` token for example.
 
 First create a secret that holds token
@@ -101,4 +103,49 @@ After this, we have to portforward to the argo server to be able to login using 
 
 ```sh
 k port-forward -n argo services/argo-workflows-server 8080:80
+```
+
+#### Workflow SA
+
+When creating a workflow in a namespace, argo uses the default sa in that namespace, which will almost always have insufficient privileges by default.
+
+One solution is to give the default sa an admin role (On your own risk, should be avoided)
+
+```sh
+kubectl create rolebinding default-admin --clusterrole=admin --serviceaccount=<namespace>:default -n <namespace>
+```
+
+The other solution is to define a cluster role:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: "2024-06-04T19:39:41Z"
+  name: argo-workflows-executor
+  resourceVersion: "1051790"
+  uid: 00cbb7c5-de61-492a-9a72-8f48387ca648
+rules:
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflowtaskresults
+    verbs:
+      - create
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - list
+      - get
+      - watch
+      - patch
+```
+
+and assign it to the default sa.
+
+```sh
+k create clusterrolebinding <cluster-role-binding-name> --clusterrole=argo-workflows-executor --serviceaccount=<namespace>:default -n <namespace>
 ```
