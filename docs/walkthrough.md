@@ -40,7 +40,33 @@ make sure to run, so then pods can change the owenership.
 chown -R 999:999 /mnt/vda1/nfs/
 ```
 
+#### Nginx
+
+We need to use Nginx proxy to tunnel ipv6 request to ipv4. Remember, our vodafone modem can only expose ipv6
+but our kubernetes cluster runs on ipv4.
+
+Set the nginx config at `/etc/nginx/sites-available/default` to:
+
+```
+server {
+        listen [::]:8081 default_server;
+        server_name _;
+
+        location /api/webhook {
+                proxy_pass https://10.100.0.129/api/webhook;  # Nginx ingress service external IP address
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+        }
+}
+```
+
 ### Kubernetes Cluster
+
+#### Terraform
+
+#### Kubespray
 
 #### NFS Subdir Provisioner
 
@@ -52,7 +78,25 @@ kubectl patch storageclass nfs-client -p '{"metadata": {"annotations":{"storagec
 
 #### ArgoCD
 
-can be done with kubespray
+install it with kube spray or help. Then setup an ingres for it
+
+```sh
+k create ingress -n argocd argocd-server \
+--class=nginx \
+--rule="argocd.geekembly.com/*=argocd-server:443" \
+--rule="github.geekembly.com/api/webhook=argocd-server:443" \
+--annotation='nginx.ingress.kubernetes.io/backend-protocol=HTTPS' \
+--annotation='nginx.ingress.kubernetes.io/force-ssl-redirect=true' \
+--annotation='nginx.ingress.kubernetes.io/ssl-passthrough=true'
+```
+
+second rule is to make sure that our edge server config works for github webhook deliveries.
+
+and to get the password:
+
+```sh
+argocd admin initial-password -n argocd
+```
 
 #### Sealed Secrets
 
@@ -62,19 +106,29 @@ Add bitnami charts
 argocd repo add https://charts.bitnami.com/bitnami --name bitnami
 ```
 
-#### Terraform
-
-#### Kubespray
-
 ### ArgoCD
 
 #### Github Hooks
 
 ### Argo Workflows
 
-#### Accessing UI
+Argo workflows are installed automatically as a argo cd app with helm charts.
+As argo cli uses kubectl context, it has first class access to argo workflows.
+For the UI however we need to use a token. We can use `argo-workflows-server` token for example.
 
-Argo workflows are installed automatically as a argo cd app with helm charts. As argo cli uses kubectl context, it has first class access to argo workflows. For the UI however we need to use a token. We can use `argo-workflows-server` token for example.
+#### Ingress
+
+setup ingress if not yet.
+
+```sh
+k create ingress -n argo argo-workflows-server \
+--class=nginx --rule="argo.geekembly.com/*=argo-workflows-server:80" \
+--annotation='nginx.ingress.kubernetes.io/backend-protocol=HTTP' \
+--annotation='nginx.ingress.kubernetes.io/force-ssl-redirect=true' \
+--annotation='nginx.ingress.kubernetes.io/ssl-passthrough=true'
+```
+
+#### Accessing UI
 
 First create a secret that holds token
 
@@ -89,7 +143,6 @@ metadata:
     kubernetes.io/service-account.name: argo-workflows-server
 type: kubernetes.io/service-account-token
 EOF
-secret/argo.service-account-token created
 ```
 
 And then get the token like:
@@ -109,43 +162,33 @@ k port-forward -n argo services/argo-workflows-server 8080:80
 
 When creating a workflow in a namespace, argo uses the default sa in that namespace, which will almost always have insufficient privileges by default.
 
-One solution is to give the default sa an admin role (On your own risk, should be avoided)
+Therefore, we need to define a role:
 
 ```sh
-kubectl create rolebinding default-admin --clusterrole=admin --serviceaccount=<namespace>:default -n <namespace>
-```
-
-The other solution is to define a cluster role:
-
-```yaml
+k apply -f - <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
-  creationTimestamp: "2024-06-04T19:39:41Z"
-  name: argo-workflows-executor
-  resourceVersion: "1051790"
-  uid: 00cbb7c5-de61-492a-9a72-8f48387ca648
+  name: argo-workflows-admin
+  namespace: <namespace>
 rules:
   - apiGroups:
       - argoproj.io
     resources:
       - workflowtaskresults
     verbs:
-      - create
-      - update
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-    verbs:
       - list
       - get
       - watch
       - patch
+      - create
+      - update
+      - delete
+EOF
 ```
 
 and assign it to the default sa.
 
 ```sh
-k create clusterrolebinding <cluster-role-binding-name> --clusterrole=argo-workflows-executor --serviceaccount=<namespace>:default -n <namespace>
+k create rolebinding <cluster-role-binding-name> --clusterrole=argo-workflows-executor --serviceaccount=<namespace>:default -n <namespace>
 ```
