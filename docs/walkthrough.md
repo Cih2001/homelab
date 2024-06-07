@@ -70,15 +70,32 @@ server {
 
 #### NFS Subdir Provisioner
 
+install with helm:
+
+```sh
+helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+helm install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+    --set nfs.server=x.x.x.x \
+    --set nfs.path=/exported/path
+```
+
 make it default after setting up
 
 ```sh
-kubectl patch storageclass nfs-client -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+k patch storageclass nfs-client -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+```
+
+and then make sure it is set to default by
+
+```sh
+k get storageclass
 ```
 
 #### ArgoCD
 
-install it with kube spray or help. Then setup an ingres for it
+ArgoCD is install automatically by kubespary, to access it however, we need to do some manual modifications.
+
+##### Ingress
 
 ```sh
 k create ingress -n argocd argocd-server \
@@ -92,27 +109,67 @@ k create ingress -n argocd argocd-server \
 
 second rule is to make sure that our edge server config works for github webhook deliveries.
 
-and to get the password:
+##### Admin Password & CLI
+
+You can get the admin password by
 
 ```sh
 argocd admin initial-password -n argocd
 ```
 
-#### Sealed Secrets
-
-Add bitnami charts
+however to use the cli, you have to login with kube context
 
 ```sh
-argocd repo add https://charts.bitnami.com/bitnami --name bitnami
+argocd login argocd.geekembly.com --core
 ```
 
-### ArgoCD
+then then you have to set your context to use argocd by default (avoid this, use ui instead.)
 
-#### Github Hooks
+```sh
+k config set-context --current --namespace=argocd
+```
+
+##### Github Access Token
+
+remember that you need to set the context to use argocd namespace first (previous section)
+
+```sh
+argocd repo add <repo-link-https> --username=<github_user_name> --password=<github_token>
+```
+
+Additional info at [docs](https://argo-cd.readthedocs.io/en/stable/user-guide/private-repositories/)
+
+##### Github Webhook Secret
+
+In the argocd secret, add github webhook secret `webhook.github.secret`
+
+```sh
+k edit secret -n argocd argocd-secret
+```
+
+and then add
+
+```yaml
+stringData:
+  webhook.github.secret: <your webhook password>
+```
+
+#### Sealed Secrets
+
+will be installed automatically by argocd if you run
+
+```sh
+k apply -f applications/apps.yaml
+```
 
 ### Argo Workflows
 
-Argo workflows are installed automatically as a argo cd app with helm charts.
+Argo workflows are installed automatically as a argo cd app with helm charts when you run:
+
+```sh
+k apply -f applications/apps.yaml
+```
+
 As argo cli uses kubectl context, it has first class access to argo workflows.
 For the UI however we need to use a token. We can use `argo-workflows-server` token for example.
 
@@ -152,12 +209,6 @@ ARGO_TOKEN="Bearer $(kubectl get secret argo.service-account-token -n argo -o=js
 echo $ARGO_TOKEN
 ```
 
-After this, we have to portforward to the argo server to be able to login using browser.
-
-```sh
-k port-forward -n argo services/argo-workflows-server 8080:80
-```
-
 #### Workflow SA
 
 When creating a workflow in a namespace, argo uses the default sa in that namespace, which will almost always have insufficient privileges by default.
@@ -165,26 +216,10 @@ When creating a workflow in a namespace, argo uses the default sa in that namesp
 Therefore, we need to define a role:
 
 ```sh
-k apply -f - <<EOF
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: argo-workflows-admin
-  namespace: <namespace>
-rules:
-  - apiGroups:
-      - argoproj.io
-    resources:
-      - workflowtaskresults
-    verbs:
-      - list
-      - get
-      - watch
-      - patch
-      - create
-      - update
-      - delete
-EOF
+kubectl create role argo-workflows-admin \
+  --namespace <namespace> \
+  --verb=list --verb=get --verb=watch --verb=patch --verb=create --verb=update --verb=delete \
+  --resource=workflowtaskresults.argoproj.io
 ```
 
 and assign it to the default sa.

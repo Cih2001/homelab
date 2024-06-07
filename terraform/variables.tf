@@ -26,7 +26,14 @@ variable "k9s_control_planes" {
     {
       vm_id   = 5000
       cpu     = { sockets = 1, cores = 2 }
-      memory  = 2048
+      memory  = 4096
+      disk    = { datastore_id = "local-lvm", size = 32 }
+      network = { bridge = "vmbr0", vlan_id = 100 }
+    },
+    {
+      vm_id   = 5001
+      cpu     = { sockets = 1, cores = 2 }
+      memory  = 4096
       disk    = { datastore_id = "local-lvm", size = 32 }
       network = { bridge = "vmbr0", vlan_id = 100 }
     }
@@ -56,7 +63,7 @@ variable "k9s_workers" {
     {
       vm_id   = 5100
       cpu     = { sockets = 1, cores = 2 }
-      memory  = 2048
+      memory  = 4096
       disk    = { datastore_id = "local-lvm", size = 32 }
       network = { bridge = "vmbr0", vlan_id = 100 }
     },
