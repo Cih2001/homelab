@@ -2,9 +2,9 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: draft
+  name: minio
   labels:
-    name: minio-dev # Change this value to match metadata.name
+    name: minio
 ---
 # Deploys a new MinIO Pod into the metadata.namespace Kubernetes namespace
 #
@@ -18,7 +18,7 @@ metadata:
   labels:
     app: minio
   name: minio
-  namespace: draft
+  namespace: minio
 spec:
   containers:
     - name: minio
@@ -39,7 +39,7 @@ spec:
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  namespace: draft
+  namespace: minio
   name: minio-claim
 spec:
   storageClassName: nfs-client
@@ -48,3 +48,50 @@ spec:
   resources:
     requests:
       storage: 200Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: minio
+  name: minio-svc
+spec:
+  ports:
+    - port: 80
+      targetPort: 9090
+      protocol: TCP
+      name: ui-port
+    - port: 9000
+      targetPort: 9000
+      protocol: TCP
+      name: api-port
+  selector:
+    app: minio
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: minio
+  name: minio-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: minio.geekembly.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio-svc
+                port:
+                  name: ui-port
+    - host: minio.api.geekembly.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio-svc
+                port:
+                  name: api-port

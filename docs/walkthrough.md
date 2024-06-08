@@ -12,7 +12,10 @@ This is a step by step guide on how to create a home lab.
 ### Goals
 
 1. k8s kubernetes cluster in isolated from local lan
+1. Metallb and Nginx Ingress Setup
+1. Cert-Manager Setup + Let's Encrypt
 1. Argocd integration on github.
+1. Argo Workflows + Argo Events + Github Integration
 1. MinIO object storage
 1. Sealed Secrets
 1. Prometeus and Grafana
@@ -48,16 +51,95 @@ but our kubernetes cluster runs on ipv4.
 Set the nginx config at `/etc/nginx/sites-available/default` to:
 
 ```
+# This is for accessing your web applications inside kubernetes.
+# If you don't want to access any of your web applications from outside world
+# modify the server name to be only
+# server_name github.<domain_name>;
+# which is needed to received github webhooks.
 server {
-        listen [::]:8081 default_server;
-        server_name _;
+        listen 80;
+        listen [::]:80;
 
-        location /api/webhook {
-                proxy_pass https://10.100.0.129/api/webhook;  # Nginx ingress service external IP address
+        server_name <domain_name> www.<domain_name>;
+
+        location / {
+                proxy_pass http://<external-nginx-ingress-ip>;
                 proxy_set_header Host $host;
                 proxy_set_header X-Real-IP $remote_addr;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                 proxy_set_header X-Forwarded-Proto $scheme;
+        }
+}
+```
+
+This forwards all http traffic from your domain to your k8s cluster.
+
+However, that's not enough. We need to handle https requests as well. Since we are going
+to manage ssl certificates with cert-manager in our kubernetes cluster, our ssl connections
+will terminate in kubernetes cluster. Therefore, all we need to do is to stream https
+connections further to the
+
+Add following to the end of nginx default config at `/etc/nginx/nginx.conf`:
+
+```
+stream {
+        server {
+                listen 443;
+                listen [::]:443;
+                proxy_pass <external-nginx-ingress-ip>:443;
+        }
+}
+```
+
+Remember that you have to do this step, after having your kubernetes cluster fully set up
+as you need your external nginx ingress ip address.
+
+### Digital Ocean Host
+
+As our Vodafone modem only enables IPv6 host exposure, we are limited to that and we could get away with it, if Github were supporting it.
+
+Unfortenatly, github only support IPv4 for its integration. As a result, to be able to receive Github webhooks, we need to buy a host, to be able
+to received ipv4 request and convert them to ipv6 using nginx.
+
+I'm using Digital ocean, but this should be able to be done with any vps service.
+
+#### DNS records
+
+| type  | domain | IP                  |
+| ----- | ------ | ------------------- |
+| A     | github | IP of external host |
+| CNAME | www    | <your domain>       |
+
+#### Nginx
+
+Very similar to Edge service, except that we have to tunnel ipv4 to ipv6, so at `/etc/nginx/sites-available/default`:
+
+```
+server {
+        listen 80;
+        listen [::]:80;
+
+        server_name <domain_name> www.<domain_name>;
+
+        location / {
+                proxy_pass http://<ipv6-address-of-edge-service>;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+        }
+}
+
+```
+
+and at the end of default nginx config at `/etc/nginx/nginx.conf` append:
+
+```
+stream {
+        server {
+                listen 443;
+                listen [::]:443;
+                proxy_pass [<ipv6-address-of-edge-service>]:443;
         }
 }
 ```
@@ -101,9 +183,8 @@ ArgoCD is install automatically by kubespary, to access it however, we need to d
 k create ingress -n argocd argocd-server \
 --class=nginx \
 --rule="argocd.geekembly.com/*=argocd-server:443" \
---rule="github.geekembly.com/api/webhook=argocd-server:443" \
+--rule="github.geekembly.com/api/webhook=argocd-server:80" \
 --annotation='nginx.ingress.kubernetes.io/backend-protocol=HTTPS' \
---annotation='nginx.ingress.kubernetes.io/force-ssl-redirect=true' \
 --annotation='nginx.ingress.kubernetes.io/ssl-passthrough=true'
 ```
 
@@ -225,5 +306,5 @@ kubectl create role argo-workflows-admin \
 and assign it to the default sa.
 
 ```sh
-k create rolebinding <cluster-role-binding-name> --clusterrole=argo-workflows-executor --serviceaccount=<namespace>:default -n <namespace>
+k create rolebinding <role-binding-name> --role=argo-workflows-admin --serviceaccount=<namespace>:default -n <namespace>
 ```

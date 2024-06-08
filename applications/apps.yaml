@@ -8,7 +8,7 @@ items:
       namespace: argocd
     spec:
       destination:
-        namespace: draft
+        namespace: minio
         server: https://kubernetes.default.svc
       project: default
       source:
