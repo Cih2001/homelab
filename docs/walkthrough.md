@@ -310,6 +310,39 @@ ARGO_TOKEN="Bearer $(kubectl get secret argo.service-account-token -n argo -o=js
 echo $ARGO_TOKEN
 ```
 
+#### Artifacts Registry
+
+add details of the artifacts registry to the config map
+
+```sh
+k edit -n argo configmap argo-workflows-controller
+```
+
+scroll down till you see `artifactRepository` and modify it like:
+
+```yaml
+data:
+  artifactRepository:
+    s3:
+      bucket: artifacts-repo
+      endpoint: <minio-api-external-ip>:9000
+      insecure: true
+      accessKeySecret:
+        name: minio-workflow-ak
+        key: accessKey
+      secretKeySecret:
+        name: minio-workflow-ak
+        key: secretKey
+```
+
+Now, in every namespace you use workflows, you have to provide the `minio-workflow-ak` Secret.
+
+You can use the following command to create the secret using sealed secret.
+
+```sh
+k create secret generic -n <app-namespace> minio-workflow-ak --dry-run=client --from-literal="accessKey=<minio-access-key>" --from-literal="secretKey=<minio-secret-key>" --output=yaml | kubeseal -o yaml
+```
+
 #### Workflow SA
 
 When creating a workflow in a namespace, argo uses the default sa in that namespace, which will almost always have insufficient privileges by default.
@@ -327,31 +360,4 @@ and assign it to the default sa.
 
 ```sh
 k create rolebinding <role-binding-name> --role=argo-workflows-admin --serviceaccount=<namespace>:default -n <namespace>
-```
-
-#### Artifacts Registry
-
-add details of the artifacts registry to the config map
-
-```yaml
-data:
-  artifactRepository: |
-    s3:         
-      bucket: artifacts-repo
-      endpoint: minio.api.geekembly.com
-      insecure: true
-      accessKeySecret:
-        name: minio-workflow-ak
-        key: accessKey
-      secretKeySecret:
-        name: minio-workflow-ak
-        key: secretKey
-```
-
-Now, in every namespace you use workflows, you have to provide the `minio-workflow-ak` Secret.
-
-You can use the following command to create the secret using sealed secret.
-
-```sh
-k create secret generic -n <app-namespace> minio-workflow-ak --dry-run=client --from-literal="accessKey=<minio-access-key>" --from-literal="secretKey=<minio-secret-key>" --output=yaml | kubeseal -o yaml
 ```
