@@ -338,13 +338,13 @@ data:
   artifactRepository: |
     s3:         
       bucket: artifacts-repo
-      endpoint: argo.api.geekembly.com
+      endpoint: minio.api.geekembly.com
       insecure: true
       accessKeySecret:
-        name: minio-workflow-ak                                        
-        key: accessKey                                                                                                                         
-      secretKeySecret:                                                                                                                         
-        name: minio-workflow-ak                                                                                                                
+        name: minio-workflow-ak
+        key: accessKey
+      secretKeySecret:
+        name: minio-workflow-ak
         key: secretKey
 ```
 
