@@ -243,9 +243,41 @@ will be installed automatically by argocd if you run
 k apply -f applications/apps.yaml
 ```
 
+#### MinIO
+
+will be installed automatically by argocd if you run
+
+```sh
+k apply -f applications/apps.yaml
+```
+
+you also need to install mc cli.
+
+```sh
+brew install minio/stable/mc
+```
+
+after that, login using default username and password `minioadmin` and `minioadmin` and create a access key, you can name it `workflow-ak`
+
+add the access key to the mc cli using
+
+```sh
+mc alias set workflow-ak http://minio.api.geekembly.com <access-key> <secret>
+```
+
+also create a bucket using ui, you can name it `artifacts-repo`. now you can list everthing in the bucket by
+
+```sh
+mc ls workflow-ak/artifacts-repo
+```
+
+also remember to change the admin password.
+
 ### Argo Workflows
 
-Argo workflows are installed automatically as a argo cd app with helm charts when you run:
+Argo workflows are installed automatically as a argo cd app with helm charts when you apply `apps.yaml`:
+
+Remember to modify the ingress domain in `apps.yaml` file before applying and then:
 
 ```sh
 k apply -f applications/apps.yaml
@@ -253,18 +285,6 @@ k apply -f applications/apps.yaml
 
 As argo cli uses kubectl context, it has first class access to argo workflows.
 For the UI however we need to use a token. We can use `argo-workflows-server` token for example.
-
-#### Ingress
-
-setup ingress if not yet.
-
-```sh
-k create ingress -n argo argo-workflows-server \
---class=nginx --rule="argo.geekembly.com/*=argo-workflows-server:80" \
---annotation='nginx.ingress.kubernetes.io/backend-protocol=HTTP' \
---annotation='nginx.ingress.kubernetes.io/force-ssl-redirect=true' \
---annotation='nginx.ingress.kubernetes.io/ssl-passthrough=true'
-```
 
 #### Accessing UI
 
@@ -307,4 +327,31 @@ and assign it to the default sa.
 
 ```sh
 k create rolebinding <role-binding-name> --role=argo-workflows-admin --serviceaccount=<namespace>:default -n <namespace>
+```
+
+#### Artifacts Registry
+
+add details of the artifacts registry to the config map
+
+```yaml
+data:
+  artifactRepository: |
+    s3:         
+      bucket: artifacts-repo
+      endpoint: argo.api.geekembly.com
+      insecure: true
+      accessKeySecret:
+        name: minio-workflow-ak                                        
+        key: accessKey                                                                                                                         
+      secretKeySecret:                                                                                                                         
+        name: minio-workflow-ak                                                                                                                
+        key: secretKey
+```
+
+Now, in every namespace you use workflows, you have to provide the `minio-workflow-ak` Secret.
+
+You can use the following command to create the secret using sealed secret.
+
+```sh
+k create secret generic -n <app-namespace> minio-workflow-ak --dry-run=client --from-literal="accessKey=<minio-access-key>" --from-literal="secretKey=<minio-secret-key>" --output=yaml | kubeseal -o yaml
 ```

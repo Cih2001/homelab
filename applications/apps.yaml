@@ -57,6 +57,15 @@ items:
         chart: argo-workflows
         repoURL: https://charts.bitnami.com/bitnami
         targetRevision: 9.0.1
+        helm:
+          releaseName: argo-workflows
+          parameters:
+            - name: ingress.enabled
+              value: "true"
+            - name: ingress.hostname
+              value: argo.geekembly.com
+            - name: ingress.hostname
+              value: argo.geekembly.com
       syncPolicy:
         automated:
           prune: true
