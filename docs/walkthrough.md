@@ -314,6 +314,9 @@ stringData:
           enabled: false
     http:
       addr: :5000
+      secret: secret
+      headers:
+        X-Content-Type-Options: [nosniff]
 EOF
 ```
 
