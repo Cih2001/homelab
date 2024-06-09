@@ -22,7 +22,7 @@ spec:
         args:
           - --dockerfile=Dockerfile
           - --context=/workdir
-          - --destination=registry-svc.registry:5000/hello-world:latest
+          - --destination=registry-svc.registry:80/hello-world:latest
           - --insecure
         volumeMounts:
           - name: workdir
