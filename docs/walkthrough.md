@@ -335,7 +335,7 @@ data:
   default-v1-s3-artifact-repository: |
     s3:
       bucket: artifacts-repo
-        endpoint: http://minio-svc.minio.svc.cluster.local:9000
+        endpoint: minio-svc.minio:9000
       insecure: true
       accessKeySecret:
         name: minio-workflow-ak
