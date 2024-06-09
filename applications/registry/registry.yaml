@@ -46,6 +46,7 @@ spec:
       name: http-port
   selector:
     app: registry-app
+  type: LoadBalancer
 ---
 apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
