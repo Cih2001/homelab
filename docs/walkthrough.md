@@ -279,6 +279,44 @@ mc ls workflow-ak/artifacts-repo
 
 also remember to change the admin password.
 
+### Registry
+
+```sh
+k apply --dry-run -o yaml -f - <<EOF | kubeseal -o yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: registry-config-sec
+  namespace: registry
+stringData:
+  config.yml: |
+    version: 0.1
+    log:
+      level: debug
+      formatter: text
+      fields:
+        service: registry
+    storage:
+      s3:
+        accesskey: <minio-access-key>
+        secretkey: <minio-secret-key>
+        region: us-east-1
+        bucket: container-repo
+        regionendpoint: minio-svc.minio:9000
+        secure: false
+        v4auth: true
+        chunksize: 5242880
+        rootdirectory: /
+      delete:
+        enabled: true
+      maintenance:
+        readonly:
+          enabled: false
+    http:
+      addr: :5000
+EOF
+```
+
 ### Argo Workflows
 
 Argo workflows are installed automatically as a argo cd app with helm charts when you apply `apps.yaml`:
