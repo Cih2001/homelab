@@ -72,6 +72,8 @@ kind: Ingress
 metadata:
   namespace: minio
   name: minio-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "500m"
 spec:
   ingressClassName: nginx
   rules:

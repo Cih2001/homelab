@@ -68,6 +68,8 @@ kind: Ingress
 metadata:
   namespace: registry
   name: registry
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "500m"
 spec:
   ingressClassName: nginx
   rules:
