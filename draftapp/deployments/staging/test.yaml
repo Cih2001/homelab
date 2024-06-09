@@ -4,6 +4,8 @@ metadata:
   namespace: draftapp-dev
   generateName: artifact-passing-
 spec:
+  artifactRepositoryRef:
+    configMap: artifact-repositories
   entrypoint: artifact-example
   templates:
     - name: artifact-example
@@ -30,6 +32,8 @@ spec:
           # artifacts can be directories as well as files
           - name: hello-art
             path: /tmp/hello_world.txt
+            s3:
+              key: hello.txt
 
     - name: print-message
       inputs:

@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: registry
+  labels:
+    name: registry
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry-dpl
+  namespace: registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registry-app
+  template:
+    metadata:
+      labels:
+        app: registry-app
+    spec:
+      containers:
+        - name: registry
+          image: registry:2
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/docker/registry
+      volumes:
+        - name: config-volume
+          secret:
+            secretName: registry-config-sec
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: registry
+  name: registry-svc
+spec:
+  ports:
+    - port: 80
+      targetPort: 5000
+      protocol: TCP
+      name: http-port
+  selector:
+    app: registry-app
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: registry-config-sec
+  namespace: registry
+spec:
+  encryptedData:
+    config.yml: AgBvVQc5cSHWttbLgZEjmUx1eSRdQStWFmRdLTPNGC367JjAAAQOtQyCih4bvaVuWLPVqTsr4fR+cQciXShwWQvVyJqLdGbwEouv/QU0WXggS6f96pHKFoiG8Q5LTGijV1Ygk6hh5HXq1Ht2ihD5oIxGeVJYy0xYqUjRYVTd83Ezx8lVqRBnW0XekjbR4Uh3UTlX+doArzyz9ownJTVK3QvKHEi002G4TPuPLqaP+iWnkgANIPiM+ePugPLzx+GFzld2a/8blNVm6Ih9/tVNjW5QYKXM1Abo39yMbrIYaQUaIeR7PeAuV/+lomuuVKUUWUJhfc8eoWXTBJVx1e4LAS3nSfCGINWLthTJoQcoQf51H1HRPlKzn7h1Mh8oLs8kO4M80cw8do/z6p4dmqFDscz38o1aMddoabPcT2GKKtDtl794k0IiiI8yuQPvFiWa5Rw/aMMcbGHyTBztP9JkTKNGCNfrvIzVqPw0+kuaEtkzdTvaGMiJYFcJNcmu14JEib3sYvP1Lf0iPCcP9GflsbbQO+RYJQC0C0snEMaylA5oGg39U9kpYyWDVSFd3Rp2/cP/W+FYstONntryuN4m/5Na0ddkQZzc9W6mQqaNs2Gt5vkjMz0cEdWIrHtpJx2dAmhfMwlaUPp4yzScdVKQOzGYGgSVfXH3qLWO1Y257cTEqj8CKOE5+y8xvP0UPbrhQKp9ElonPi248cgawXyKVhkMa7PqsYaSdMt01ivdcJbzLlE/oN6/mxPCasfv2ZpsjuBC6bS/agCahcT327vKxcbo1dL9m11eCRfP6LlFSAWTNzJUONsHqr7RZBGErmkk5hGAiwZj2b9Yb+YUqrUaNhTb0T4chwEsQM6aStQZYFZ8yGEGg/g+7geXo4hB6LXOiyX43lflIlpTatUQ9pXKZCdta4EzKVy305D8I6OdIxi5M3pmZ02GVQ41JAfaB2oAkTjZEe/IWPJQEUd8Y6Ywd5XYbsjI6sRNI6RC+FNL3a1v7CQZO9Azp1711+VmjTBrCnFnjIjCba1NNQbTi9qZ55gt/w2DGvZ5F7wRxEyd653qKIkFniH6fWAAtGXkt1hLUlwV51iKDTc/mhe18yaS3Rkm9AjQtDIl
+  template:
+    metadata:
+      creationTimestamp: null
+      name: registry-config-sec
+      namespace: registry
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: registry
+  name: registry
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: docker-registry.geekembly.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: registry-svc
+                port:
+                  name: http-port

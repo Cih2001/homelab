@@ -245,7 +245,13 @@ k apply -f applications/apps.yaml
 
 #### MinIO
 
-will be installed automatically by argocd if you run
+Minio is an opensource s3 compatible object storage. We will use as:
+
+1. Default object storage for argo workflow artifacts.
+1. To setup our own container registry. (We don't want to push our internal images to docker hub or other places.)
+1. Some web applications we deploy later may benefit from an s3 compatible object storage.
+
+Minio will be installed automatically by argocd if you run
 
 ```sh
 k apply -f applications/apps.yaml
@@ -310,22 +316,26 @@ ARGO_TOKEN="Bearer $(kubectl get secret argo.service-account-token -n argo -o=js
 echo $ARGO_TOKEN
 ```
 
-#### Artifacts Registry
+#### Artifacts Repository
 
-add details of the artifacts registry to the config map
+To be able to save artifact, we need to make a repository available to argo workflows. We are going to use our Minio object storage.
+
+First, we have to define the repository to the argo:
 
 ```sh
-k edit -n argo configmap argo-workflows-controller
-```
-
-scroll down till you see `artifactRepository` and modify it like:
-
-```yaml
+k apply -f - <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: argo
+  name: artifact-repositories
+  annotations:
+    workflows.argoproj.io/default-artifact-repository: default-v1-s3-artifact-repository
 data:
-  artifactRepository:
+  default-v1-s3-artifact-repository: |
     s3:
       bucket: artifacts-repo
-      endpoint: <minio-api-external-ip>:9000
+        endpoint: http://minio-svc.minio.svc.cluster.local:9000
       insecure: true
       accessKeySecret:
         name: minio-workflow-ak
@@ -333,15 +343,26 @@ data:
       secretKeySecret:
         name: minio-workflow-ak
         key: secretKey
+EOF
 ```
 
-Now, in every namespace you use workflows, you have to provide the `minio-workflow-ak` Secret.
+Now, in every namespace you use workflows:
 
-You can use the following command to create the secret using sealed secret.
+1. You have to provide the `minio-workflow-ak` Secret. You can use the following command to create the secret using sealed secret.
 
-```sh
-k create secret generic -n <app-namespace> minio-workflow-ak --dry-run=client --from-literal="accessKey=<minio-access-key>" --from-literal="secretKey=<minio-secret-key>" --output=yaml | kubeseal -o yaml
-```
+   ```sh
+   k create secret generic -n <app-namespace> minio-workflow-ak --dry-run=client --from-literal="accessKey=<minio-access-key>" --from-literal="secretKey=<minio-secret-key>" --output=yaml | kubeseal -o yaml
+   ```
+
+   And add the result to your deployment files for argocd to pick them up.
+
+1. You have to define a reference to artifact repository in your workflows
+
+   ```yaml
+   spec:
+     artifactRepositoryRef:
+       configMap: artifact-repositories
+   ```
 
 #### Workflow SA
 

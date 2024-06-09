@@ -60,21 +60,10 @@ spec:
       targetPort: 9090
       protocol: TCP
       name: ui-port
-  selector:
-    app: minio
----
-apiVersion: v1
-kind: Service
-metadata:
-  namespace: minio
-  name: minio-api-svc
-spec:
-  ports:
     - port: 9000
       targetPort: 9000
       protocol: TCP
       name: api-port
-  type: LoadBalancer
   selector:
     app: minio
 ---
@@ -103,6 +92,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: minio-api-svc
+                name: minio-svc
                 port:
                   name: api-port
