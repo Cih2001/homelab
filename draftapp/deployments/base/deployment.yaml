@@ -15,4 +15,4 @@ spec:
     spec:
       containers:
         - name: draftapp
-          image: registry-svc.registry/hello-world:latest
+          image: registry-svc.registry:80/hello-world:latest

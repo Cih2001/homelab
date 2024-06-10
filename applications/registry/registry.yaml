@@ -28,14 +28,14 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: /etc/docker/registry
-            - name: tls-certs
-              mountPath: /certs
-              readOnly: true
-          env:
-            - name: REGISTRY_HTTP_TLS_CERTIFICATE
-              value: /certs/tls.crt
-            - name: REGISTRY_HTTP_TLS_KEY
-              value: /certs/tls.key
+              # - name: tls-certs
+              #   mountPath: /certs
+              #   readOnly: true
+              # env:
+              #   - name: REGISTRY_HTTP_TLS_CERTIFICATE
+              #     value: /certs/tls.crt
+              #   - name: REGISTRY_HTTP_TLS_KEY
+              #     value: /certs/tls.key
       volumes:
         - name: config-volume
           secret:
@@ -51,13 +51,12 @@ metadata:
   name: registry-svc
 spec:
   ports:
-    - port: 443
+    - port: 80
       targetPort: 5000
       protocol: TCP
-      name: https-port
+      name: http-port
   selector:
     app: registry-app
-  type: LoadBalancer
 ---
 apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
