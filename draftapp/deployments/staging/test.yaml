@@ -23,6 +23,7 @@ spec:
           - --dockerfile=Dockerfile
           - --context=/workdir
           - --destination=registry-svc.registry:443/hello-world:latest
+          - --skip-tls-verify=true
         volumeMounts:
           - name: workdir
             mountPath: /workdir
