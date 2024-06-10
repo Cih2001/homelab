@@ -28,10 +28,21 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: /etc/docker/registry
+            - name: tls-certs
+              mountPath: /certs
+              readOnly: true
+          env:
+            - name: REGISTRY_HTTP_TLS_CERTIFICATE
+              value: /certs/tls.crt
+            - name: REGISTRY_HTTP_TLS_KEY
+              value: /certs/tls.key
       volumes:
         - name: config-volume
           secret:
             secretName: registry-config-sec
+        - name: tls-certs
+          secret:
+            secretName: registry-tls
 ---
 apiVersion: v1
 kind: Service
@@ -40,10 +51,10 @@ metadata:
   name: registry-svc
 spec:
   ports:
-    - port: 80
+    - port: 443
       targetPort: 5000
       protocol: TCP
-      name: http-port
+      name: https-port
   selector:
     app: registry-app
   type: LoadBalancer
@@ -71,8 +82,15 @@ metadata:
   name: registry
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+    cert-manager.io/cluster-issuer: "my-ca-issuer"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - docker-registry.geekembly.com
+      secretName: registry-tls-ingress
   rules:
     - host: docker-registry.geekembly.com
       http:
@@ -83,4 +101,4 @@ spec:
               service:
                 name: registry-svc
                 port:
-                  name: http-port
+                  name: https-port
