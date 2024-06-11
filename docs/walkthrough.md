@@ -320,6 +320,28 @@ stringData:
 EOF
 ```
 
+in your workflows, you need to configure registry authentication.
+
+```sh
+CRED=$(echo -n USER:PASSWORD | base64)
+k apply --dry-run=client -o yaml -f - << EOF | kubeseal -o yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: reg-auth
+  namespace: draftapp-dev
+stringData:
+  config.json: |
+    {
+      "auths": {
+        "registry-svc.registry": {
+          "auth": "$CRED"
+        }
+      }
+    }
+EOF
+```
+
 ### Argo Workflows
 
 Argo workflows are installed automatically as a argo cd app with helm charts when you apply `apps.yaml`:

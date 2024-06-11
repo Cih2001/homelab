@@ -22,11 +22,17 @@ spec:
         args:
           - --dockerfile=Dockerfile
           - --context=/workdir
-          - --destination=registry-svc.registry:443/hello-world:latest
-          - --skip-tls-verify=true
+          - --destination=registry-svc.registry/hello-world:latest
+          - --insecure=true
         volumeMounts:
           - name: workdir
             mountPath: /workdir
+          - name: reg-auth-vol
+            mountPath: /kaniko/.docker
+      volumes:
+        - name: reg-auth-vol
+          secret:
+            secretName: reg-auth
 
     - name: generate-context
       script:

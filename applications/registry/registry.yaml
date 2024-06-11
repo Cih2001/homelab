@@ -28,21 +28,22 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: /etc/docker/registry
-              # - name: tls-certs
-              #   mountPath: /certs
-              #   readOnly: true
-              # env:
-              #   - name: REGISTRY_HTTP_TLS_CERTIFICATE
-              #     value: /certs/tls.crt
-              #   - name: REGISTRY_HTTP_TLS_KEY
-              #     value: /certs/tls.key
+            - name: htpasswd
+              mountPath: /auth
+          env:
+            - name: REGISTRY_AUTH
+              value: htpasswd
+            - name: REGISTRY_AUTH_HTPASSWD_PATH
+              value: /auth/.htpasswd
+            - name: REGISTRY_AUTH_HTPASSWD_REALM
+              value: Registry Realm
       volumes:
         - name: config-volume
           secret:
             secretName: registry-config-sec
-        - name: tls-certs
+        - name: htpasswd
           secret:
-            secretName: registry-tls
+            secretName: registry-auth-secret
 ---
 apiVersion: v1
 kind: Service
@@ -74,24 +75,39 @@ spec:
       namespace: registry
     type: Opaque
 ---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: registry-auth-secret
+  namespace: registry
+spec:
+  encryptedData:
+    .htpasswd: AgCJxdFShkGNNXYLEEJ5ozEyQD40zoogZAf7mFLef/eLrDfa6FxVRLA7w+Wt7YiX6xRnQDQoxHFv5ANxXVAnlpcjKG5GYRPWRO7aeF+LTIXATQ38JQgVU011/Vlp0XcGQmQpCcVq4AKjeUSxQAKdz3x5cGeTap1Q3DgVqveJDPicr6v2Zv37hYO/M2Ul12bNOoGBSoCLp5OBYMtwPh6sg38+Ozf15FZmcFQq8vMFwedm+cWuTdTjSY4WKsZPyQV3Szl3NFdwQsqPgLsfSbxgQmm3DlgJ1afkxCmM4bRGzDyG3xPBEdL0CW3HpEpDGCQPPV45Lm8VTbnpz7fTpAGZqrqEhRhEnnBAOXTJ2dM2jBqOcuh4fzs3SY2D9Yp1Bmb6xlRKTM/YsauishfwlJ7dWAd0NacLg/TjqqvkYU26sH09Zoh7kbcAi+/DTWuOF1KBeeDTafLbxmX34UJBynwbALdbrdv1QAjct6r3Ponyiz6k1k+hAVyYdnyRTUO8EtUReQrXVsVwq9CRTlYyFdwLUi2WX8UFpTS392Crb172UHl82Sn0fltQs8KA7GdC7u01z4CLN2X07TJXe44LsnPnwtaPHngKULHuI4wiUYe+w4JtYjeeFwoinPkWXosHM0eBf5tmYmpNTR6VhrrXPCqnBoH60F3KDJCEYCGw0jH5WP11+2s3xSZYXWQzUe3kTdR21mkNz0ohIa99K1ZeF/wOZ01fTtkm507RdzXCzWEFFBCDSJkXfLI2UEQUGn5lhT8SzlMDgmz1g6vADRyE2BX04phjEZF5WoQ=
+  template:
+    metadata:
+      creationTimestamp: null
+      name: registry-auth-secret
+      namespace: registry
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   namespace: registry
   name: registry
   annotations:
+    cert-manager.io/issuer: "letsencrypt-prod"
+    acme.cert-manager.io/http01-edit-in-place: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "500m"
-    cert-manager.io/cluster-issuer: "my-ca-issuer"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - docker-registry.geekembly.com
+        - docker.registry.geekembly.com
       secretName: registry-tls-ingress
   rules:
-    - host: docker-registry.geekembly.com
+    - host: docker.registry.geekembly.com
       http:
         paths:
           - path: /
@@ -100,4 +116,4 @@ spec:
               service:
                 name: registry-svc
                 port:
-                  name: https-port
+                  name: http-port
