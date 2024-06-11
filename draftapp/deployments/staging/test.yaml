@@ -32,7 +32,7 @@ spec:
       volumes:
         - name: reg-auth-vol
           secret:
-            secretName: reg-auth
+            secretName: kaniko-auth
 
     - name: generate-context
       script:

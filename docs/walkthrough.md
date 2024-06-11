@@ -60,7 +60,7 @@ server {
         listen 80;
         listen [::]:80;
 
-        server_name <domain_name> www.<domain_name>;
+        server_name <domain_name> www.<domain_name> github.<domain_name> docker.registry.<docmain_name>;
 
         location / {
                 proxy_pass http://<external-nginx-ingress-ip>;
@@ -119,7 +119,7 @@ server {
         listen 80;
         listen [::]:80;
 
-        server_name <domain_name> www.<domain_name>;
+        server_name <domain_name> www.<domain_name> github.<domain_name> docker.registry.<docmain_name>;
 
         location / {
                 proxy_pass http://<ipv6-address-of-edge-service>;
