@@ -40,7 +40,7 @@ spec:
         command: [sh]
         source: |
           #!/bin/sh
-          echo "FROM hello-world:latest" > /workdir/Dockerfile
+          echo "FROM nginx:1.27-alpine" > /workdir/Dockerfile
         volumeMounts:
           - name: workdir
             mountPath: /workdir
