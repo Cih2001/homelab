@@ -2,6 +2,44 @@
 
 This is a step by step guide on how to create a home lab.
 
+## Table of contents
+
+- [Walkthrough](#walkthrough)
+  - [Table of contents](#table-of-contents)
+  - [Context](#context)
+    - [Limitations](#limitations)
+    - [Goals](#goals)
+  - [Design](#design)
+    - [Hardware](#hardware)
+    - [Proxmox](#proxmox)
+    - [pfSense](#pfsense)
+    - [EdgeServices](#edgeservices)
+      - [NFS](#nfs)
+      - [Nginx](#nginx)
+    - [Digital Ocean Host](#digital-ocean-host)
+      - [DNS records](#dns-records)
+      - [Nginx](#nginx-1)
+    - [Kubernetes Cluster](#kubernetes-cluster)
+      - [Terraform](#terraform)
+      - [Kubespray](#kubespray)
+      - [NFS Subdir Provisioner](#nfs-subdir-provisioner)
+    - [ArgoCD](#argocd)
+      - [Ingress](#ingress)
+      - [Admin Password \& CLI](#admin-password--cli)
+      - [Github Access Token](#github-access-token)
+      - [Github Webhook Secret](#github-webhook-secret)
+    - [Sealed Secrets](#sealed-secrets)
+    - [MinIO](#minio)
+      - [Using Minio As Artifacts Repository For Argo](#using-minio-as-artifacts-repository-for-argo)
+    - [Registry](#registry)
+    - [Argo Workflows](#argo-workflows)
+      - [Accessing UI](#accessing-ui)
+      - [Artifacts Repository](#artifacts-repository)
+      - [Registry Authentication](#registry-authentication)
+      - [Workflow SA](#workflow-sa)
+  - [Tricks](#tricks)
+    - [Pulling images from private repositories](#pulling-images-from-private-repositories)
+
 ## Context
 
 ### Limitations
@@ -14,10 +52,11 @@ This is a step by step guide on how to create a home lab.
 1. k8s kubernetes cluster in isolated from local lan
 1. Metallb and Nginx Ingress Setup
 1. Cert-Manager Setup + Let's Encrypt
+1. Sealed Secrets
+1. MinIO object storage
+1. Private Container Registry
 1. Argocd integration on github.
 1. Argo Workflows + Argo Events + Github Integration
-1. MinIO object storage
-1. Sealed Secrets
 1. Prometeus and Grafana
 
 Bonus:
@@ -50,7 +89,7 @@ but our kubernetes cluster runs on ipv4.
 
 Set the nginx config at `/etc/nginx/sites-available/default` to:
 
-```
+```nginx
 # This is for accessing your web applications inside kubernetes.
 # If you don't want to access any of your web applications from outside world
 # modify the server name to be only
@@ -81,7 +120,7 @@ connections further to the
 
 Add following to the end of nginx default config at `/etc/nginx/nginx.conf`:
 
-```
+```nginx
 stream {
         server {
                 listen 443;
@@ -114,7 +153,7 @@ I'm using Digital ocean, but this should be able to be done with any vps service
 
 Very similar to Edge service, except that we have to tunnel ipv4 to ipv6, so at `/etc/nginx/sites-available/default`:
 
-```
+```nginx
 server {
         listen 80;
         listen [::]:80;
@@ -134,7 +173,7 @@ server {
 
 and at the end of default nginx config at `/etc/nginx/nginx.conf` append:
 
-```
+```nginx
 stream {
         server {
                 listen 443;
@@ -173,11 +212,11 @@ and then make sure it is set to default by
 k get storageclass
 ```
 
-#### ArgoCD
+### ArgoCD
 
 ArgoCD is install automatically by kubespary, to access it however, we need to do some manual modifications.
 
-##### Ingress
+#### Ingress
 
 ```sh
 k create ingress -n argocd argocd-server \
@@ -190,7 +229,7 @@ k create ingress -n argocd argocd-server \
 
 second rule is to make sure that our edge server config works for github webhook deliveries.
 
-##### Admin Password & CLI
+#### Admin Password & CLI
 
 You can get the admin password by
 
@@ -210,7 +249,7 @@ then then you have to set your context to use argocd by default (avoid this, use
 k config set-context --current --namespace=argocd
 ```
 
-##### Github Access Token
+#### Github Access Token
 
 remember that you need to set the context to use argocd namespace first (previous section)
 
@@ -220,7 +259,7 @@ argocd repo add <repo-link-https> --username=<github_user_name> --password=<gith
 
 Additional info at [docs](https://argo-cd.readthedocs.io/en/stable/user-guide/private-repositories/)
 
-##### Github Webhook Secret
+#### Github Webhook Secret
 
 In the argocd secret, add github webhook secret `webhook.github.secret`
 
@@ -235,7 +274,7 @@ stringData:
   webhook.github.secret: <your webhook password>
 ```
 
-#### Sealed Secrets
+### Sealed Secrets
 
 will be installed automatically by argocd if you run
 
@@ -243,7 +282,7 @@ will be installed automatically by argocd if you run
 k apply -f applications/apps.yaml
 ```
 
-#### MinIO
+### MinIO
 
 Minio is an opensource s3 compatible object storage. We will use as:
 
@@ -263,7 +302,11 @@ you also need to install mc cli.
 brew install minio/stable/mc
 ```
 
-after that, login using default username and password `minioadmin` and `minioadmin` and create a access key, you can name it `workflow-ak`
+_Note:_ remember to change the admin password.
+
+#### Using Minio As Artifacts Repository For Argo
+
+login using admin username and password (default is `minioadmin` and `minioadmin`) and create a access key, you can name it `workflow-ak`
 
 add the access key to the mc cli using
 
@@ -277,9 +320,45 @@ also create a bucket using ui, you can name it `artifacts-repo`. now you can lis
 mc ls workflow-ak/artifacts-repo
 ```
 
-also remember to change the admin password.
+To be able to save artifact, we need to make a repository available to argo workflows. We are going to use our Minio object storage.
+
+First, we have to define the repository to the argo:
+
+```sh
+k apply -f - <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: argo
+  name: artifact-repositories
+  annotations:
+    workflows.argoproj.io/default-artifact-repository: default-v1-s3-artifact-repository
+data:
+  default-v1-s3-artifact-repository: |
+    s3:
+      bucket: artifacts-repo
+        endpoint: minio-svc.minio:9000
+      insecure: true
+      accessKeySecret:
+        name: minio-workflow-ak
+        key: accessKey
+      secretKeySecret:
+        name: minio-workflow-ak
+        key: secretKey
+EOF
+```
+
+And then we cantinue with TBD
 
 ### Registry
+
+Registry will be installed automatically by argocd if you run
+
+```sh
+k apply -f applications/apps.yaml
+```
+
+the registry config is genereated using:
 
 ```sh
 k apply --dry-run -o yaml -f - <<EOF | kubeseal -o yaml
@@ -317,28 +396,6 @@ stringData:
       secret: secret
       headers:
         X-Content-Type-Options: [nosniff]
-EOF
-```
-
-in your workflows, you need to configure registry authentication.
-
-```sh
-CRED=$(echo -n USER:PASSWORD | base64)
-k apply --dry-run=client -o yaml -f - << EOF | kubeseal -o yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: reg-auth
-  namespace: draftapp-dev
-stringData:
-  config.json: |
-    {
-      "auths": {
-        "registry-svc.registry": {
-          "auth": "$CRED"
-        }
-      }
-    }
 EOF
 ```
 
@@ -381,35 +438,7 @@ echo $ARGO_TOKEN
 
 #### Artifacts Repository
 
-To be able to save artifact, we need to make a repository available to argo workflows. We are going to use our Minio object storage.
-
-First, we have to define the repository to the argo:
-
-```sh
-k apply -f - <<EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: argo
-  name: artifact-repositories
-  annotations:
-    workflows.argoproj.io/default-artifact-repository: default-v1-s3-artifact-repository
-data:
-  default-v1-s3-artifact-repository: |
-    s3:
-      bucket: artifacts-repo
-        endpoint: minio-svc.minio:9000
-      insecure: true
-      accessKeySecret:
-        name: minio-workflow-ak
-        key: accessKey
-      secretKeySecret:
-        name: minio-workflow-ak
-        key: secretKey
-EOF
-```
-
-Now, in every namespace you use workflows:
+To use artifacts registry define above, in every namespace you use workflows:
 
 1. You have to provide the `minio-workflow-ak` Secret. You can use the following command to create the secret using sealed secret.
 
@@ -417,7 +446,7 @@ Now, in every namespace you use workflows:
    k create secret generic -n <app-namespace> minio-workflow-ak --dry-run=client --from-literal="accessKey=<minio-access-key>" --from-literal="secretKey=<minio-secret-key>" --output=yaml | kubeseal -o yaml
    ```
 
-   And add the result to your deployment files for argocd to pick them up.
+   And add the result to your deployment files for argocd to pick them up. Do not change the secret key name!
 
 1. You have to define a reference to artifact repository in your workflows
 
@@ -426,6 +455,30 @@ Now, in every namespace you use workflows:
      artifactRepositoryRef:
        configMap: artifact-repositories
    ```
+
+#### Registry Authentication
+
+in your workflows, you need to configure registry authentication.
+
+```sh
+CRED=$(echo -n USER:PASSWORD | base64)
+k apply --dry-run=client -o yaml -f - << EOF | kubeseal -o yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: reg-auth
+  namespace: draftapp-dev
+stringData:
+  config.json: |
+    {
+      "auths": {
+        "registry-svc.registry": {
+          "auth": "$CRED"
+        }
+      }
+    }
+EOF
+```
 
 #### Workflow SA
 
@@ -444,4 +497,26 @@ and assign it to the default sa.
 
 ```sh
 k create rolebinding <role-binding-name> --role=argo-workflows-admin --serviceaccount=<namespace>:default -n <namespace>
+```
+
+## Tricks
+
+### Pulling images from private repositories
+
+to be able to pull images from private repo, we need to add `imagePullSecrets` to deployment
+
+```yaml
+spec:
+  template:
+    containers:
+      - name: draftapp
+        image: docker.registry.geekembly.com/hello-world:latest
+    imagePullSecrets:
+      - name: regcred
+```
+
+and to create `regcred` secret:
+
+```sh
+k create secret docker-registry regcred -n <namespace> --dry-run=client --docker-server=<address-of-private-registry> --docker-username=<username> --docker-password=<password> -o yaml | kubeseal -o yaml
 ```
