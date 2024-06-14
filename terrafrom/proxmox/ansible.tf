@@ -9,7 +9,7 @@ locals {
 }
 
 resource "local_file" "ansible_inventory" {
-  filename = "../ansible/inventory.ini"
+  filename = "../../ansible/inventory.ini"
   content = templatefile("${path.module}/inventory_template.tpl", {
     cp_count     = length(var.k9s_control_planes)
     worker_count = length(var.k9s_workers)

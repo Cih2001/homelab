@@ -58,13 +58,15 @@ items:
         targetRevision: 9.0.1
         helm:
           releaseName: argo-workflows
-          parameters:
-            - name: ingress.enabled
-              value: "true"
-            - name: ingress.hostname
-              value: argo.geekembly.com
-            - name: ingress.hostname
-              value: argo.geekembly.com
+          values: |
+            ingress:
+              enabled: true
+              hostname: argo.geekembly.com
+              annotations:
+                a: b
+                cert-manager.io/cluster-issuer: "letsencrypt-prod"
+                acme.cert-manager.io/http01-edit-in-place: "true"
+                nginx.ingress.kubernetes.io/ssl-redirect: "true"
       syncPolicy:
         automated:
           prune: true
