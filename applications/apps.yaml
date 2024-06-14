@@ -54,19 +54,26 @@ items:
       project: default
       source:
         chart: argo-workflows
-        repoURL: https://charts.bitnami.com/bitnami
-        targetRevision: 9.0.1
+        repoURL: https://argoproj.github.io/argo-helm
+        targetRevision: 0.41.8
         helm:
           releaseName: argo-workflows
           values: |
-            ingress:
-              enabled: true
-              hostname: argo.geekembly.com
-              annotations:
-                a: b
-                cert-manager.io/cluster-issuer: "letsencrypt-prod"
-                acme.cert-manager.io/http01-edit-in-place: "true"
-                nginx.ingress.kubernetes.io/ssl-redirect: "true"
+            server:
+              ingress:
+                enabled: true
+                hosts:
+                  - argo.geekembly.com
+                ingressClassName: nginx
+                annotations:
+                  cert-manager.io/cluster-issuer: "letsencrypt-prod"
+                  acme.cert-manager.io/http01-edit-in-place: "true"
+                  nginx.ingress.kubernetes.io/ssl-redirect: "true"
+                tls:
+                  - hosts:
+                      - argo.geekembly.com
+                    secretName: argo.geekembly.com-tls
+
       syncPolicy:
         automated:
           prune: true
