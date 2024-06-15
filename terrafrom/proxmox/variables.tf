@@ -62,36 +62,36 @@ variable "k9s_workers" {
   default = [
     {
       vm_id   = 5100
-      cpu     = { sockets = 1, cores = 2 }
-      memory  = 4096
+      cpu     = { sockets = 2, cores = 4 }
+      memory  = 8192
       disk    = { datastore_id = "local-lvm", size = 32 }
       network = { bridge = "vmbr0", vlan_id = 100 }
     },
     {
       vm_id   = 5101
-      cpu     = { sockets = 1, cores = 2 }
-      memory  = 2048
+      cpu     = { sockets = 2, cores = 4 }
+      memory  = 8192
       disk    = { datastore_id = "local-lvm", size = 32 }
       network = { bridge = "vmbr0", vlan_id = 100 }
     },
     {
       vm_id   = 5102
-      cpu     = { sockets = 1, cores = 2 }
-      memory  = 2048
+      cpu     = { sockets = 2, cores = 4 }
+      memory  = 8192
       disk    = { datastore_id = "local-lvm", size = 32 }
       network = { bridge = "vmbr0", vlan_id = 100 }
     },
     {
       vm_id   = 5103
-      cpu     = { sockets = 1, cores = 2 }
-      memory  = 2048
+      cpu     = { sockets = 2, cores = 4 }
+      memory  = 8192
       disk    = { datastore_id = "local-lvm", size = 32 }
       network = { bridge = "vmbr0", vlan_id = 100 }
     },
     {
       vm_id   = 5104
-      cpu     = { sockets = 1, cores = 2 }
-      memory  = 2048
+      cpu     = { sockets = 2, cores = 4 }
+      memory  = 8192
       disk    = { datastore_id = "local-lvm", size = 32 }
       network = { bridge = "vmbr0", vlan_id = 100 }
     }

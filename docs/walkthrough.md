@@ -222,7 +222,6 @@ ArgoCD is install automatically by kubespary, to access it however, we need to d
 k create ingress -n argocd argocd-server \
 --class=nginx \
 --rule="argocd.geekembly.com/*=argocd-server:443" \
---rule="github.geekembly.com/api/webhook=argocd-server:80" \
 --annotation='nginx.ingress.kubernetes.io/backend-protocol=HTTPS' \
 --annotation='nginx.ingress.kubernetes.io/ssl-passthrough=true'
 ```
@@ -458,26 +457,42 @@ To use artifacts registry define above, in every namespace you use workflows:
 
 #### Registry Authentication
 
-in your workflows, you need to configure registry authentication.
+in your workflows, you need to configure registry authentication. add the following secret
 
 ```sh
-CRED=$(echo -n USER:PASSWORD | base64)
-k apply --dry-run=client -o yaml -f - << EOF | kubeseal -o yaml
+export USER=<reg-username>
+export PASS=<reg-password>
+export CRED=$(echo -n $USER:$PASS | base64)
+k apply --dry-run=client -o yaml -f - <<EOF
 apiVersion: v1
 kind: Secret
+type: kubernetes.io/dockerconfigjson
 metadata:
-  name: reg-auth
-  namespace: draftapp-dev
+  name: regcred
+  namespace: geekembly
 stringData:
-  config.json: |
+  .dockerconfigjson: |
     {
-      "auths": {
-        "registry-svc.registry": {
-          "auth": "$CRED"
+        "auths": {
+            "docker.registry.geekembly.com":{"username":"$USER","password":"$PASS","auth":"$CRED"},
+            "registry-svc.registry":{"username":"$USER","password":"$PASS","auth":"$CRED"},
         }
-      }
     }
 EOF
+```
+
+and then in the argo workflow:
+
+```yaml
+volumeMounts:
+  # This one enables kaniko to push to private repo
+  - name: docker-vol
+    mountPath: /kaniko/.docker/config.json
+    subPath: .dockerconfigjson
+  # This one enables pulling private images refered in docker files.
+  - name: docker-vol
+    mountPath: /kaniko/.docker/.dockerconfigjson
+    subPath: .dockerconfigjson
 ```
 
 #### Workflow SA
@@ -518,5 +533,23 @@ spec:
 and to create `regcred` secret:
 
 ```sh
-k create secret docker-registry regcred -n <namespace> --dry-run=client --docker-server=<address-of-private-registry> --docker-username=<username> --docker-password=<password> -o yaml | kubeseal -o yaml
+export USER=<reg-username>
+export PASS=<reg-password>
+export CRED=$(echo -n $USER:$PASS | base64)
+k apply --dry-run=client -o yaml -f - <<EOF
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/dockerconfigjson
+metadata:
+  name: regcred
+  namespace: geekembly
+stringData:
+  .dockerconfigjson: |
+    {
+        "auths": {
+            "docker.registry.geekembly.com":{"username":"$USER","password":"$PASS","auth":"$CRED"},
+            "registry-svc.registry":{"username":"$USER","password":"$PASS","auth":"$CRED"},
+        }
+    }
+EOF
 ```
