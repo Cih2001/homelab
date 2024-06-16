@@ -121,22 +121,3 @@ items:
           prune: true
         syncOptions:
           - CreateNamespace=true
-
-  - apiVersion: argoproj.io/v1alpha1
-    kind: Application
-    metadata:
-      name: events
-      namespace: argocd
-    spec:
-      destination:
-        namespace: events
-        server: https://kubernetes.default.svc
-      project: default
-      source:
-        path: applications/events
-        repoURL: https://github.com/Cih2001/homelab.git
-      syncPolicy:
-        automated:
-          prune: true
-        syncOptions:
-          - CreateNamespace=true
