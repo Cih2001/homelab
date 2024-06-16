@@ -19,6 +19,7 @@ items:
           prune: true
         syncOptions:
           - CreateNamespace=true
+
   - apiVersion: argoproj.io/v1alpha1
     kind: Application
     metadata:
@@ -42,6 +43,7 @@ items:
         automated:
           prune: true
           selfHeal: true
+
   - apiVersion: argoproj.io/v1alpha1
     kind: Application
     metadata:
@@ -73,12 +75,34 @@ items:
                   - hosts:
                       - argo.geekembly.com
                     secretName: argo.geekembly.com-tls
-
       syncPolicy:
         automated:
           prune: true
         syncOptions:
           - CreateNamespace=true
+
+  - apiVersion: argoproj.io/v1alpha1
+    kind: Application
+    metadata:
+      name: argo-events
+      namespace: argocd
+    spec:
+      destination:
+        namespace: argo-events
+        server: https://kubernetes.default.svc
+      project: default
+      source:
+        chart: argo-events
+        repoURL: https://argoproj.github.io/argo-helm
+        targetRevision: 2.4.6
+        helm:
+          releaseName: argo-events
+      syncPolicy:
+        automated:
+          prune: true
+        syncOptions:
+          - CreateNamespace=true
+
   - apiVersion: argoproj.io/v1alpha1
     kind: Application
     metadata:
@@ -91,6 +115,25 @@ items:
       project: default
       source:
         path: applications/registry
+        repoURL: https://github.com/Cih2001/homelab.git
+      syncPolicy:
+        automated:
+          prune: true
+        syncOptions:
+          - CreateNamespace=true
+
+  - apiVersion: argoproj.io/v1alpha1
+    kind: Application
+    metadata:
+      name: events
+      namespace: argocd
+    spec:
+      destination:
+        namespace: events
+        server: https://kubernetes.default.svc
+      project: default
+      source:
+        path: applications/events
         repoURL: https://github.com/Cih2001/homelab.git
       syncPolicy:
         automated:
