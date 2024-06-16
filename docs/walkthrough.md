@@ -567,3 +567,83 @@ stringData:
     }
 EOF
 ```
+
+### Setting up a new project
+
+#### create a new argocd username for it
+
+```sh
+k edit -n argocd configmaps argocd-cm
+```
+
+and
+
+```yaml
+data:
+  accounts.geekembly: apiKey,login
+```
+
+and then change it's password. For that first you need to login as admin
+
+```sh
+argocd login argocd.geekembly.com --username 'admin' --password '<admin-pass>'
+```
+
+and the set the new password
+
+```sh
+argocd account update-password --account geekembly --current-password '<admin-pass>' --new-password '<new-pass>'
+```
+
+now you should be able to login using ui.
+
+#### create a new argocd proj for it
+
+```sh
+k apply -f - <<EOF
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: geekembly
+  namespace: argocd
+spec:
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  destinations:
+  - namespace: geekembly
+    server: https://kubernetes.default.svc
+  - namespace: argocd
+    server: https://kubernetes.default.svc
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  sourceRepos:
+  - https://github.com/Cih2001/geekembly.git
+```
+
+#### Setup rbac for new project
+
+```sh
+k edit -n argocd configmaps argocd-rbac-cm
+```
+
+```yaml
+data:
+  policy.csv: |
+    p, role:geekembly-role, applications, *, geekembly/*, allow
+    p, role:geekembly-role, applications, list, *, allow
+    p, role:geekembly-role, namespaces, *, geekembly, allow
+    p, role:geekembly-role, namespaces, list, *, allow
+    p, role:geekembly-role, projects, *, geekembly, allow
+    p, role:geekembly-role, projects, list, *, allow
+    g, geekembly, role:geekembly-role
+```
+
+#### Argocd API token
+
+You can login using ui or create api token using cli, after that, you need to save it in a secret file
+
+```sh
+k create secret generic argocd-cred -o yaml --dry-run=client --from-literal='token=<api-token-here>' -n geekembly | kubeseal -o yaml
+```
