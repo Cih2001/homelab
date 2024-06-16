@@ -514,6 +514,20 @@ and assign it to the default sa.
 k create rolebinding <role-binding-name> --role=argo-workflows-admin --serviceaccount=<namespace>:default -n <namespace>
 ```
 
+### Argo Events
+
+Argo events are also install automatically using argocd. However, some manual steps are needed.
+
+#### Event bus
+
+#### Github Event Source
+
+Github event source should be setup in each namespace we want integration. Github secrets should be stored like:
+
+```sh
+k create secret generic github-access -n <namespace> --from-literal=token=<github-token> --from-literal=secret=<webhook-secret> --dry-run=client -o yaml | kubeseal -o yaml
+```
+
 ## Tricks
 
 ### Pulling images from private repositories
