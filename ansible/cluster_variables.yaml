@@ -1,6 +1,9 @@
 cluster_name: homelab-k8s
+
 kube_proxy_mode: iptables
+
 helm_enabled: true
+
 metallb_enabled: true
 metallb_speaker_enabled: "{{ metallb_enabled }}"
 metallb_namespace: "metallb-system"
@@ -32,14 +35,17 @@ metallb_config:
       auto_assign: true
   layer2:
     - primary
+
 ingress_nginx_enabled: true
 ingress_nginx_service_type: LoadBalancer
 ingress_nginx_namespace: "ingress-nginx"
 ingress_nginx_insecure_port: 80
 ingress_nginx_secure_port: 443
 ingress_nginx_default: true
+
 cert_manager_enabled: true
 cert_manager_namespace: "cert-manager"
+
 argocd_enabled: true
 argocd_version: v2.11.0
 argocd_namespace: argocd

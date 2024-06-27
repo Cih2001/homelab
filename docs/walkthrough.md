@@ -568,6 +568,16 @@ stringData:
 EOF
 ```
 
+### Prometeus
+
+Make sure to set configure kube-porxy to bind metrics on all interfaces
+
+```sh
+k edit cm -n kube-system kube-proxy
+```
+
+and change `metricsBindAddress: 127.0.0.1:10249` to `metricsBindAddress: 0.0.0.0:10249`
+
 ### Setting up a new project
 
 #### create a new argocd username for it
@@ -639,6 +649,27 @@ data:
     p, role:geekembly-role, projects, list, *, allow
     g, geekembly, role:geekembly-role
 ```
+
+#### Prometeus service monitor for new project
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    release: kube-prometheus-stack
+  name: geekembly-sm
+  namespace: geekembly
+spec:
+  endpoints:
+    - port: metrics
+      interval: 30s
+  selector:
+    matchLabels:
+      app: geekembly
+```
+
+For Prometeus to pick up the
 
 #### Argocd API token
 
