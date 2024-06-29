@@ -137,13 +137,26 @@ items:
           releaseName: kube-prometheus-stack
           values: |
             namespaceOverride: monitoring
+            grafana:
+              ingress:
+                enabled: true
+                ingressClassName: nginx
+                annotations:
+                  cert-manager.io/cluster-issuer: "letsencrypt-prod"
+                  acme.cert-manager.io/http01-edit-in-place: "true"
+                  nginx.ingress.kubernetes.io/ssl-redirect: "true"
+                hosts:
+                  - grafana.geekembly.com
+                tls:
+                  - hosts:
+                      - grafana.geekembly.com
+                    secretName: grafana.geekembly.com-tls
+                path: /
+
       destination:
         namespace: monitoring
         server: https://kubernetes.default.svc
       syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true
