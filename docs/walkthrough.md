@@ -578,6 +578,29 @@ k edit cm -n kube-system kube-proxy
 
 and change `metricsBindAddress: 127.0.0.1:10249` to `metricsBindAddress: 0.0.0.0:10249`
 
+### Loki & Alloy
+
+Are install with argocd cd.
+
+#### Minio Setup
+
+create buckets for loki
+
+```sh
+mc mb admin/loki-admin
+mc mb admin/loki-chunks
+mc mb admin/loki-ruler
+```
+
+#### Minio Cred
+
+Make sure you provide minio cred after intallation to loki
+
+```sh
+argocd app set loki -p loki.storage.s3.accessKeyId=<access-key-id>
+argocd app set loki -p loki.storage.s3.secretAccessKey=<secret-access-key>
+```
+
 ### Setting up a new project
 
 #### create a new argocd username for it

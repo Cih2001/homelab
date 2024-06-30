@@ -160,3 +160,135 @@ items:
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true
+
+  - apiVersion: argoproj.io/v1alpha1
+    kind: Application
+    metadata:
+      name: loki
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://grafana.github.io/helm-charts
+        chart: loki
+        targetRevision: 6.6.4
+        helm:
+          releaseName: loki
+          values: |
+            global:
+              clusterDomain: homelab-k8s
+              dnsService: coredns
+            deploymentMode: SingleBinary
+            loki:
+              auth_enabled: false
+              commonConfig:
+                replication_factor: 1
+              storage:
+                bucketNames:
+                  chunks: loki-chunks
+                  ruler: loki-ruler
+                  admin: loki-admin
+                type: 's3'
+                bucketNames:
+                  chunks: loki-chunks
+                  ruler: loki-ruler
+                  admin: loki-admin
+                s3:
+                  endpoint: minio-svc.minio:9000
+                  region: us-east-1
+                  s3ForcePathStyle: true
+                  insecure: true
+              schemaConfig:
+                configs:
+                - from: "2024-01-01"
+                  store: tsdb
+                  index:
+                    prefix: loki_index_
+                    period: 24h
+                  object_store: s3
+                  schema: v13
+            chunksCache:
+              allocatedMemory: 1024
+            singleBinary:
+              replicas: 1
+            read:
+              replicas: 0
+            backend:
+              replicas: 0
+            write:
+              replicas: 0
+      destination:
+        namespace: monitoring
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+
+  - apiVersion: argoproj.io/v1alpha1
+    kind: Application
+    metadata:
+      name: alloy
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://grafana.github.io/helm-charts
+        chart: alloy
+        targetRevision: 0.4.0
+        helm:
+          releaseName: alloy
+          values: |
+            alloy:
+              configMap:
+                content: |
+                  loki.write "default" {
+                    endpoint {
+                      url       = "http://loki-gateway.monitoring/loki/api/v1/push"
+                      tenant_id = "tenant1"
+                    }
+                    external_labels = {}
+                  }
+
+                  loki.source.kubernetes "homelab" {
+                    targets          = discovery.kubernetes.pods.targets
+                    forward_to       = [loki.write.default.receiver]
+                  }
+
+                  logging {
+                    level  = "debug"
+                    format = "logfmt"
+                  }
+
+                  discovery.kubernetes "pods" {
+                    role = "pod"
+                  }
+
+                  discovery.kubernetes "nodes" {
+                    role = "node"
+                  }
+
+                  discovery.kubernetes "services" {
+                    role = "service"
+                  }
+
+                  discovery.kubernetes "endpoints" {
+                    role = "endpoints"
+                  }
+
+                  discovery.kubernetes "endpointslices" {
+                    role = "endpointslice"
+                  }
+
+                  discovery.kubernetes "ingresses" {
+                    role = "ingress"
+                  }
+      destination:
+        namespace: monitoring
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated:
+          prune: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
