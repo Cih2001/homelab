@@ -39,6 +39,9 @@ resource "proxmox_virtual_environment_file" "cloud_config" {
         - timedatectl set-timezone Europe/Berlin
         - systemctl enable qemu-guest-agent
         - systemctl start qemu-guest-agent
+				- sysctl -w fs.inotify.max_queued_events=2099999999
+				- sysctl -w fs.inotify.max_user_instances=2099999999
+				- sysctl -w fs.inotify.max_user_watches=2099999999
         - echo "done" > /tmp/cloud-config.done
   EOF
 

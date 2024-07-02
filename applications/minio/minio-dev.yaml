@@ -31,6 +31,17 @@ spec:
       volumeMounts:
         - mountPath: /data
           name: minio-vol
+      env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: minio-admin-sec
+              key: username
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: minio-admin-sec
+              key: password
   volumes:
     - name: minio-vol
       persistentVolumeClaim:
@@ -73,9 +84,17 @@ metadata:
   namespace: minio
   name: minio-ingress
   annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    acme.cert-manager.io/http01-edit-in-place: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - minio.geekembly.com
+        - minio.api.geekembly.com
+      secretName: minio-tls-ingress
   rules:
     - host: minio.geekembly.com
       http:
