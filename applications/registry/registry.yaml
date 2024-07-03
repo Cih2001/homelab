@@ -59,37 +59,6 @@ spec:
   selector:
     app: registry-app
 ---
-apiVersion: bitnami.com/v1alpha1
-kind: SealedSecret
-metadata:
-  creationTimestamp: null
-  name: registry-config-sec
-  namespace: registry
-spec:
-  encryptedData:
-    config.yml: AgC6kpOOpvIAEzDLBPDqa5mglbXakuvyfzwQ0vMMbb++as3xOBnU+KDcmRuBLmvldICHbvULLyhoa/1Qnu50d1UBf0SkxjaXdMqwbcyjm5iCBIf37d4cAyb7YkKmnvmI9flJG6VQLbap9CZ5RXUWZun7MLk5Klkni1ZU53gHk1ZCLDWN7Pds/m9pwPVSOFZMi3RSinxjXLySnJNQw+NkBdumaf6rklbTeInah2EVd7WncibSHvZxe5rFW+LYWokgvxA+qWr/V/FPEnxzPh5XOCJYg67gr1Ah5hCPyAkgJ8HThq406gaiJWyeWRabA2jemNo4xHgwtrAXq26deZEzqkZQ0Svd1SX5OX5OfDFHTfNNpvv1VQFzvxhMcyk/AkWebkbbG7IwoeQUc0a1Eb9trRJLRgBt4CN0WiUkXkl06/mER579zerR7yhJZxkRJgYRsVapgdeeCwH79WTqPaSVCf6NycfBz4wvGkMOnkz8xIHnyz8AaBIqCG5TjA10U8sINicS0fh0Jo4B16FNdH06SbTcSxvr+9IwbWSzv/ghUHomwjiZJC5dOEfj0HaHmPJmtstfWoSlhUrdSf7senJRI06zADMe1JdFgceq7ibJ3AxIt/CdhGmVkDp7HdinAza+3vywtV+Q1xHfRdA5LWjLyCULC0jMKD86F0cQKyZyYMLOiZKosUE1oOFNPBJz/KrUaGNRGsYv3q2vhTOd6rPMnoeTkAyD4JUszKHEkTp++jAew7ZRvVYhYMUNXLwFHGCv5KAr+nT1tOqLSPfUFSIJTTLO230RnP4hM7vzJEcYacPB38L1yqnpMoHY42q4v0xuG+4N/00aTKK7+/WoPPz1IoXH71cunKHi+j8BYrdw3F+VdrHK7jP2eHd36o3lr47vY5K0K3+gaGtwXAHoybB/m7qpNJGhTiqxI1cxfysQvlG1MIjK51U+ghKv8hmHsmaNIYXDDhrHkreLWwR8Ls1Xg6+3JMcJZho9W9zwM3mF681CJB2A1Ev+XugUArgbgapEiiNaX7Ci6yLQHhyFFSt5lxMGIFB2IhOkZ3nZAAMH6zolhLSzY2DLWFmRwr7KEf5aKfpLABvrBKeWeS4q15RuzkZ8djrsIZ1ItU6Vpr6q4HuU/RLT003fTGqZz4GOf6NRGrRi/QzhwiY3KT/9xz5ssg29HzBOOXHU6qqqU+avCafnPtl5wvL7CSbWgOmj0QFcAplkNSu9M4iyfww0TIntLdBqt2XsXNRg288l+tcxyQWOp8VAZOrQF1mQzupluUqiUHTAMUhczQqC9Z8nkhK0K3a83gG5EIZLMSrVHSKwiW3QtCizmDM9M/jbe7iUekFmlxLj0CNBJso6qoM2HCSamfiWkcuiLw3wsqKhSDdJZDhPnuq75R78rlDgIUSBdw==
-  template:
-    metadata:
-      creationTimestamp: null
-      name: registry-config-sec
-      namespace: registry
-    type: Opaque
----
-apiVersion: bitnami.com/v1alpha1
-kind: SealedSecret
-metadata:
-  creationTimestamp: null
-  name: registry-auth-secret
-  namespace: registry
-spec:
-  encryptedData:
-    .htpasswd: AgCJxdFShkGNNXYLEEJ5ozEyQD40zoogZAf7mFLef/eLrDfa6FxVRLA7w+Wt7YiX6xRnQDQoxHFv5ANxXVAnlpcjKG5GYRPWRO7aeF+LTIXATQ38JQgVU011/Vlp0XcGQmQpCcVq4AKjeUSxQAKdz3x5cGeTap1Q3DgVqveJDPicr6v2Zv37hYO/M2Ul12bNOoGBSoCLp5OBYMtwPh6sg38+Ozf15FZmcFQq8vMFwedm+cWuTdTjSY4WKsZPyQV3Szl3NFdwQsqPgLsfSbxgQmm3DlgJ1afkxCmM4bRGzDyG3xPBEdL0CW3HpEpDGCQPPV45Lm8VTbnpz7fTpAGZqrqEhRhEnnBAOXTJ2dM2jBqOcuh4fzs3SY2D9Yp1Bmb6xlRKTM/YsauishfwlJ7dWAd0NacLg/TjqqvkYU26sH09Zoh7kbcAi+/DTWuOF1KBeeDTafLbxmX34UJBynwbALdbrdv1QAjct6r3Ponyiz6k1k+hAVyYdnyRTUO8EtUReQrXVsVwq9CRTlYyFdwLUi2WX8UFpTS392Crb172UHl82Sn0fltQs8KA7GdC7u01z4CLN2X07TJXe44LsnPnwtaPHngKULHuI4wiUYe+w4JtYjeeFwoinPkWXosHM0eBf5tmYmpNTR6VhrrXPCqnBoH60F3KDJCEYCGw0jH5WP11+2s3xSZYXWQzUe3kTdR21mkNz0ohIa99K1ZeF/wOZ01fTtkm507RdzXCzWEFFBCDSJkXfLI2UEQUGn5lhT8SzlMDgmz1g6vADRyE2BX04phjEZF5WoQ=
-  template:
-    metadata:
-      creationTimestamp: null
-      name: registry-auth-secret
-      namespace: registry
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
