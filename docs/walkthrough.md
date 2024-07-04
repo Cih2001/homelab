@@ -360,7 +360,7 @@ k apply -f applications/apps.yaml
 the registry config is genereated using:
 
 ```sh
-k apply --dry-run -o yaml -f - <<EOF | kubeseal -o yaml
+k apply --dry-run=client -o yaml -n registry -f - <<EOF | kubeseal -o yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -371,16 +371,18 @@ stringData:
     version: 0.1
     log:
       level: debug
-      formatter: text
+      formatter: json
       fields:
         service: registry
+      accesslog:
+        disabled: false
     storage:
       s3:
         accesskey: <minio-access-key>
         secretkey: <minio-secret-key>
         region: us-east-1
         bucket: container-repo
-        regionendpoint: minio-svc.minio:9000
+        regionendpoint: minio-svc.minio.svc.homelab-k8s:9000
         secure: false
         v4auth: true
         chunksize: 5242880
@@ -390,9 +392,12 @@ stringData:
       maintenance:
         readonly:
           enabled: false
+      redirect:
+        disable: true
     http:
       addr: :5000
-      secret: secret
+      secret: <a-local-deployment-secret>
+      host: https://docker.registry.<your-host-name>.com
       headers:
         X-Content-Type-Options: [nosniff]
 EOF
